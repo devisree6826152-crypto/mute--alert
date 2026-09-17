@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dataset Collector - SignSpeak AI</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <!-- Custom AI Stylesheet -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-custom">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="/">
+                <i class="bi bi-hand-index-thumb-fill"></i>
+                <span class="gradient-text">SignSpeak AI</span>
+            </a>
+            <button class="navbar-toggler text-white" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto align-items-center gap-2">
+                    <li class="nav-item"><a class="nav-link" href="/"><i class="bi bi-house-door-fill"></i> Home</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/recognition"><i class="bi bi-camera-reels-fill"></i> Real-Time Recognition</a></li>
+                    <li class="nav-item"><a class="nav-link active" href="/dataset"><i class="bi bi-folder-fill"></i> Dataset Collector</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/training"><i class="bi bi-cpu-fill"></i> Model Training</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/history"><i class="bi bi-clock-history"></i> History</a></li>
+                    <li class="nav-item ms-lg-2">
+                        <button id="navTriggerSosBtn" class="btn btn-sm btn-danger px-3 fw-bold shadow-sm">
+                            <i class="bi bi-exclamation-triangle-fill me-1"></i> EMERGENCY SOS <span class="badge bg-white text-danger ms-1">SOS</span>
+                        </button>
+                    </li>
+                    <li class="nav-item ms-lg-2">
+                        <button id="themeToggleBtn" class="btn btn-sm btn-ai-secondary">
+                            <i class="bi bi-sun-fill text-warning"></i> Light Mode
+                        </button>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Container -->
+    <div class="container py-4">
+        
+        <div class="row g-4">
+            
+            <!-- Left Column: Capture Controls & Camera -->
+            <div class="col-lg-6">
+                <div class="ai-card">
+                    <div class="ai-card-header">
+                        <h5 class="ai-card-title m-0"><i class="bi bi-plus-circle-fill"></i> Collect Landmark Samples</h5>
+                    </div>
+
+                    <!-- Visible Camera Preview with 60fps native video -->
+                    <div class="webcam-wrapper mb-3">
+                        <video id="datasetWebcam" class="mirrored" playsinline autoplay muted style="background: #050811; min-height: 320px;"></video>
+                        <canvas id="datasetSkeletonCanvas" class="overlay-canvas"></canvas>
+                    </div>
+
+                    <div class="row g-2 mb-3">
+                        <div class="col-md-7">
+                            <label class="form-label small text-secondary fw-bold">Select Target Sign Class:</label>
+                            <select id="datasetSignSelect" class="form-select bg-dark text-white border-secondary">
+                                <option value="HELLO">HELLO</option>
+                                <option value="YES">YES</option>
+                                <option value="NO">NO</option>
+                                <option value="THANK YOU">THANK YOU</option>
+                                <option value="PLEASE">PLEASE</option>
+                                <option value="HELP">HELP</option>
+                                <option value="GOOD">GOOD</option>
+                                <option value="STOP">STOP</option>
+                                <option value="I LOVE YOU">I LOVE YOU</option>
+                                <option value="A">A</option>
+                                <option value="B">B</option>
+                                <option value="C">C</option>
+                            </select>
+                        </div>
+                        <div class="col-md-5">
+                            <label class="form-label small text-secondary fw-bold">Add Custom Class:</label>
+                            <div class="input-group">
+                                <input type="text" id="newSignInput" class="form-control bg-dark text-white border-secondary" placeholder="Sign Name">
+                                <button id="btnAddNewSign" class="btn btn-outline-info" type="button"><i class="bi bi-plus"></i></button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="d-flex gap-2">
+                        <button id="toggleDatasetCamBtn" class="btn btn-ai-primary flex-grow-1">
+                            <i class="bi bi-camera-video-fill"></i> Start Camera
+                        </button>
+                        <button id="captureSampleBtn" class="btn btn-ai-outline flex-grow-1">
+                            <i class="bi bi-record-circle-fill text-danger"></i> Capture Landmark Sample
+                        </button>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- Right Column: Dataset Overview & Class Counts -->
+            <div class="col-lg-6">
+                
+                <!-- Stat Cards -->
+                <div class="row g-3 mb-4">
+                    <div class="col-6">
+                        <div class="stat-card">
+                            <div class="stat-icon"><i class="bi bi-database-fill"></i></div>
+                            <div>
+                                <div id="totalSamplesBadge" class="stat-val">0</div>
+                                <div class="stat-lbl">Total Samples</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="stat-card">
+                            <div class="stat-icon"><i class="bi bi-tags-fill"></i></div>
+                            <div>
+                                <div id="totalClassesBadge" class="stat-val">0</div>
+                                <div class="stat-lbl">Classes</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Dataset Distribution Table -->
+                <div class="ai-card">
+                    <div class="ai-card-header">
+                        <h5 class="ai-card-title m-0"><i class="bi bi-bar-chart-fill"></i> Class Distribution Stats</h5>
+                    </div>
+
+                    <div class="table-responsive" style="max-height: 360px; overflow-y: auto;">
+                        <table class="ai-table">
+                            <thead>
+                                <tr>
+                                    <th>Sign Class</th>
+                                    <th>Sample Count</th>
+                                    <th>Target Progress (60)</th>
+                                </tr>
+                            </thead>
+                            <tbody id="datasetStatsTableBody">
+                                <tr><td colspan="3" class="text-center text-muted">Loading dataset stats...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <!-- Footer -->
+    <footer>
+        <p class="mb-0">SignSpeak AI System &copy; 2026 | Dataset Collection Module</p>
+    </footer>
+
+    <!-- Bootstrap 5 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+</body>
+</html>

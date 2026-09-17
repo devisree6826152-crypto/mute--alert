@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Model Training & Metrics - SignSpeak AI</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <!-- Custom AI Stylesheet -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-custom">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="/">
+                <i class="bi bi-hand-index-thumb-fill"></i>
+                <span class="gradient-text">SignSpeak AI</span>
+            </a>
+            <button class="navbar-toggler text-white" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto align-items-center gap-2">
+                    <li class="nav-item"><a class="nav-link" href="/"><i class="bi bi-house-door-fill"></i> Home</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/recognition"><i class="bi bi-camera-reels-fill"></i> Real-Time Recognition</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/dataset"><i class="bi bi-folder-fill"></i> Dataset Collector</a></li>
+                    <li class="nav-item"><a class="nav-link active" href="/training"><i class="bi bi-cpu-fill"></i> Model Training</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/history"><i class="bi bi-clock-history"></i> History</a></li>
+                    <li class="nav-item ms-lg-2">
+                        <button id="navTriggerSosBtn" class="btn btn-sm btn-danger px-3 fw-bold shadow-sm">
+                            <i class="bi bi-exclamation-triangle-fill me-1"></i> EMERGENCY SOS <span class="badge bg-white text-danger ms-1">SOS</span>
+                        </button>
+                    </li>
+                    <li class="nav-item ms-lg-2">
+                        <button id="themeToggleBtn" class="btn btn-sm btn-ai-secondary">
+                            <i class="bi bi-sun-fill text-warning"></i> Light Mode
+                        </button>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Container -->
+    <div class="container py-4">
+        
+        <!-- Header Banner -->
+        <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 pb-2 border-bottom border-secondary">
+            <div>
+                <h3 class="fw-bold m-0"><i class="bi bi-cpu-fill text-info me-2"></i> Machine Learning Model Training</h3>
+                <p class="text-secondary small m-0">Train & Retrain Random Forest Classifier on landmark dataset</p>
+            </div>
+            <button id="btnTrainModel" class="btn btn-ai-primary btn-lg mt-2 mt-sm-0">
+                <span id="trainSpinner" class="spinner-border spinner-border-sm me-2 d-none"></span>
+                <i class="bi bi-lightning-charge-fill"></i> Train Model Now
+            </button>
+        </div>
+
+        <div id="trainStatusBox" class="alert alert-secondary shadow-sm mb-4">
+            <i class="bi bi-info-circle-fill me-2"></i> Ready to train model. Click 'Train Model Now' to trigger learning pipeline.
+        </div>
+
+        <!-- Metric Cards -->
+        <div class="row g-3 mb-4">
+            <div class="col-md-3 col-6">
+                <div class="stat-card">
+                    <div class="stat-icon"><i class="bi bi-check-circle-fill text-success"></i></div>
+                    <div>
+                        <div id="accValue" class="stat-val text-success">0%</div>
+                        <div class="stat-lbl">Accuracy</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 col-6">
+                <div class="stat-card">
+                    <div class="stat-icon"><i class="bi bi-bullseye text-info"></i></div>
+                    <div>
+                        <div id="precValue" class="stat-val text-info">0%</div>
+                        <div class="stat-lbl">Precision</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 col-6">
+                <div class="stat-card">
+                    <div class="stat-icon"><i class="bi bi-arrow-repeat text-warning"></i></div>
+                    <div>
+                        <div id="recValue" class="stat-val text-warning">0%</div>
+                        <div class="stat-lbl">Recall</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 col-6">
+                <div class="stat-card">
+                    <div class="stat-icon"><i class="bi bi-award-fill text-primary"></i></div>
+                    <div>
+                        <div id="f1Value" class="stat-val text-primary">0%</div>
+                        <div class="stat-lbl">F1 Score</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row g-4">
+            
+            <!-- Confusion Matrix Display -->
+            <div class="col-lg-7">
+                <div class="ai-card">
+                    <div class="ai-card-header">
+                        <h5 class="ai-card-title m-0"><i class="bi bi-grid-3x3"></i> Confusion Matrix Visualization</h5>
+                        <span class="badge bg-secondary font-monospace">Test Set Evaluation</span>
+                    </div>
+
+                    <div id="matrixContainer" class="matrix-grid" style="min-height: 250px;">
+                        <div class="text-center text-muted w-100 py-5">Loading confusion matrix...</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Model Info & Parameters -->
+            <div class="col-lg-5">
+                <div class="ai-card">
+                    <div class="ai-card-header">
+                        <h5 class="ai-card-title m-0"><i class="bi bi-gear-fill"></i> Classifier Configuration</h5>
+                    </div>
+
+                    <ul class="list-group list-group-flush bg-transparent">
+                        <li class="list-group-item bg-transparent text-light d-flex justify-content-between align-items-center border-secondary">
+                            <span>Algorithm:</span>
+                            <span class="badge bg-primary font-monospace">Random Forest</span>
+                        </li>
+                        <li class="list-group-item bg-transparent text-light d-flex justify-content-between align-items-center border-secondary">
+                            <span>Estimators (Trees):</span>
+                            <span class="badge bg-dark font-monospace">120 Trees</span>
+                        </li>
+                        <li class="list-group-item bg-transparent text-light d-flex justify-content-between align-items-center border-secondary">
+                            <span>Max Depth:</span>
+                            <span class="badge bg-dark font-monospace">18 Levels</span>
+                        </li>
+                        <li class="list-group-item bg-transparent text-light d-flex justify-content-between align-items-center border-secondary">
+                            <span>Feature Dimensions:</span>
+                            <span class="badge bg-dark font-monospace">73 Features</span>
+                        </li>
+                        <li class="list-group-item bg-transparent text-light d-flex justify-content-between align-items-center border-secondary">
+                            <span>Last Trained At:</span>
+                            <span id="trainedAtLabel" class="small text-info font-monospace">N/A</span>
+                        </li>
+                    </ul>
+
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+
+    <!-- Footer -->
+    <footer>
+        <p class="mb-0">SignSpeak AI System &copy; 2026 | Machine Learning Dashboard</p>
+    </footer>
+
+    <!-- Bootstrap 5 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+</body>
+</html>

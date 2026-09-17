@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SignSpeak AI - Real-Time Sign Language & Emergency SOS System</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <!-- Custom AI Stylesheet -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-custom">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="/">
+                <i class="bi bi-hand-index-thumb-fill"></i>
+                <span class="gradient-text">SignSpeak AI</span>
+            </a>
+            <button class="navbar-toggler text-white" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto align-items-center gap-2">
+                    <li class="nav-item">
+                        <a class="nav-link active" href="/"><i class="bi bi-house-door-fill"></i> Home</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/recognition"><i class="bi bi-camera-reels-fill"></i> Real-Time Recognition</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/dataset"><i class="bi bi-folder-fill"></i> Dataset Collector</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/training"><i class="bi bi-cpu-fill"></i> Model Training</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/history"><i class="bi bi-clock-history"></i> History & SOS Logs</a>
+                    </li>
+                    <li class="nav-item ms-lg-2">
+                        <button id="navTriggerSosBtn" class="btn btn-sm btn-danger px-3 fw-bold shadow-sm">
+                            <i class="bi bi-exclamation-triangle-fill me-1"></i> EMERGENCY SOS <span class="badge bg-white text-danger ms-1">SOS</span>
+                        </button>
+                    </li>
+                    <li class="nav-item ms-lg-2">
+                        <button id="themeToggleBtn" class="btn btn-sm btn-ai-secondary">
+                            <i class="bi bi-sun-fill text-warning"></i> Light Mode
+                        </button>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Container -->
+    <div class="container py-4">
+        
+        <!-- Hero & SOS Section -->
+        <div class="row align-items-stretch g-4 mb-5">
+            <div class="col-lg-6">
+                <div class="h-100 d-flex flex-column justify-content-between">
+                    <div>
+                        <span class="badge bg-primary bg-opacity-25 text-info border border-info mb-3 px-3 py-2 rounded-pill">
+                            <i class="bi bi-stars me-1"></i> Computer Vision & Safety Emergency System
+                        </span>
+                        <h1 class="display-5 fw-bold mb-3">
+                            Bridging Communication & Safety with <span class="gradient-text">SignSpeak AI</span>
+                        </h1>
+                        <p class="lead text-secondary mb-4">
+                            An advanced real-time Sign Language to Speech conversion and <strong>Instant Emergency SOS Alert Engine</strong>. Designed for accessible non-verbal emergency communication and rapid contact handoff.
+                        </p>
+                    </div>
+                    <div class="d-flex flex-wrap gap-3">
+                        <a href="/recognition" class="btn btn-ai-primary btn-lg">
+                            <i class="bi bi-camera-video-fill"></i> Start Live Recognition
+                        </a>
+                        <a href="#contactsSection" class="btn btn-ai-secondary btn-lg">
+                            <i class="bi bi-people-fill"></i> Emergency Contacts
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SOS Hold & Tap-to-Arm Card -->
+            <div class="col-lg-6">
+                <div class="ai-card p-4 h-100 border-danger shadow-lg sos-hero-card">
+                    <div class="ai-card-header border-danger">
+                        <h5 class="ai-card-title text-danger m-0">
+                            <i class="bi bi-shield-lock-fill text-danger fs-4"></i> Emergency SOS Trigger
+                        </h5>
+                        <span class="badge bg-danger text-white">REAL SOS FLOW</span>
+                    </div>
+
+                    <!-- Safety Disclaimer Box (Above Fold) -->
+                    <div class="alert alert-warning border-warning d-flex align-items-start gap-2 mb-3 py-2 px-3">
+                        <i class="bi bi-exclamation-circle-fill text-warning fs-5 flex-shrink-0 mt-1"></i>
+                        <div class="small text-warning-emphasis">
+                            <strong>Safety Disclaimer:</strong> This does not contact police, ambulance, or any emergency dispatch. It only notifies the personal contacts you've saved. If you are in real danger, dial your local emergency number directly if you can.
+                        </div>
+                    </div>
+
+                    <!-- Screen Reader Announcement Area -->
+                    <div id="sosHoldSrStatus" class="visually-hidden" aria-live="polite">SOS hold button ready. Press and hold for 2 seconds or use tap to arm.</div>
+
+                    <!-- Visual SOS Hold Circle & Controls -->
+                    <div class="text-center py-2">
+                        <div class="sos-button-wrapper mb-3 position-relative d-inline-block">
+                            <svg class="sos-progress-ring" width="160" height="160">
+                                <circle class="sos-progress-ring-bg" cx="80" cy="80" r="72"></circle>
+                                <circle id="sosProgressCircle" class="sos-progress-ring-fill" cx="80" cy="80" r="72"></circle>
+                            </svg>
+                            <button id="sosHoldBtn" class="sos-hold-btn" aria-label="Hold for 2 seconds to initiate Emergency SOS">
+                                <span id="sosHoldBtnIcon"><i class="bi bi-exclamation-triangle-fill display-5"></i></span>
+                                <span id="sosHoldBtnText" class="fw-bold d-block mt-1">HOLD 2s</span>
+                            </button>
+                        </div>
+
+                        <!-- Progress Bar for Mobile/Touch feedback -->
+                        <div class="progress bg-dark mb-3" style="height: 6px;">
+                            <div id="sosProgressBar" class="progress-bar bg-danger" style="width: 0%;"></div>
+                        </div>
+
+                        <!-- Tap-to-Arm Alternative Button -->
+                        <div class="d-flex justify-content-center align-items-center gap-2">
+                            <button id="sosTapArmBtn" class="btn btn-outline-danger btn-sm">
+                                <i class="bi bi-lightning-fill"></i> Tap-to-Arm SOS (Alternative)
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Emergency Contacts & Settings Section -->
+        <div id="contactsSection" class="row g-4 mb-5">
+            <!-- Contacts List Card -->
+            <div class="col-lg-7">
+                <div class="ai-card h-100">
+                    <div class="ai-card-header">
+                        <h5 class="ai-card-title m-0">
+                            <i class="bi bi-person-lines-fill text-danger"></i> Saved Emergency Contacts
+                        </h5>
+                        <button id="btnOpenAddContact" class="btn btn-sm btn-ai-primary">
+                            <i class="bi bi-person-plus-fill"></i> Add Contact
+                        </button>
+                    </div>
+
+                    <p class="text-secondary small mb-3">
+                        <i class="bi bi-info-circle me-1"></i> Add your trusted personal contacts (family, friends, care team). No dummy contacts are pre-loaded.
+                    </p>
+
+                    <div id="contactsListContainer" class="row g-2">
+                        <div class="col-12 text-center text-muted py-4">
+                            Loading emergency contacts...
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Settings / Custom Emergency Number Card -->
+            <div class="col-lg-5">
+                <div class="ai-card h-100">
+                    <div class="ai-card-header">
+                        <h5 class="ai-card-title m-0">
+                            <i class="bi bi-gear-fill text-info"></i> SOS Call Settings
+                        </h5>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="myEmergencyNumberInput" class="form-label fw-bold small text-secondary">
+                            My Emergency Number (For Direct Call Handoff):
+                        </label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-dark text-danger border-secondary"><i class="bi bi-telephone-fill"></i></span>
+                            <input type="tel" id="myEmergencyNumberInput" class="form-control bg-dark text-white border-secondary" placeholder="e.g. +1234567890 or local emergency contact">
+                            <button id="btnSaveEmergencyNumber" class="btn btn-ai-outline" type="button">Save</button>
+                        </div>
+                        <div class="form-text text-muted small mt-2">
+                            <i class="bi bi-shield-lock me-1"></i> This is the <strong>only number</strong> used when you tap the direct Call button in an active SOS alert. We never hardcode default public numbers. Leave empty if unconfigured.
+                        </div>
+                    </div>
+
+                    <div class="p-3 bg-dark bg-opacity-50 rounded border border-secondary">
+                        <h6 class="fw-bold small text-info mb-1"><i class="bi bi-geo-alt-fill me-1"></i> Geolocation Privacy & Mode</h6>
+                        <p class="text-secondary small mb-0">
+                            Location fixes use your browser's high-accuracy GPS API. If location permissions are denied, a manual location override form is automatically enabled.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Workflow Pipeline -->
+        <h3 class="fw-bold mb-4 text-center">
+            <i class="bi bi-diagram-3-fill text-info me-2"></i> System Architecture & Real SOS Pipeline
+        </h3>
+        <div class="row g-4 mb-5">
+            <div class="col-md-4 col-lg-2">
+                <div class="ai-card h-100 text-center p-3">
+                    <i class="bi bi-hand-index-thumb-fill fs-1 text-danger mb-2"></i>
+                    <h6 class="fw-bold">Hold SOS / Tap</h6>
+                    <p class="text-secondary small mb-0">Accident-proof activation</p>
+                </div>
+            </div>
+            <div class="col-md-4 col-lg-2">
+                <div class="ai-card h-100 text-center p-3">
+                    <i class="bi bi-exclamation-square-fill fs-1 text-warning mb-2"></i>
+                    <h6 class="fw-bold">Emergency Type</h6>
+                    <p class="text-secondary small mb-0">Medical, Fire, Threat, Sign</p>
+                </div>
+            </div>
+            <div class="col-md-4 col-lg-2">
+                <div class="ai-card h-100 text-center p-3">
+                    <i class="bi bi-geo-alt-fill fs-1 text-info mb-2"></i>
+                    <h6 class="fw-bold">Real Geolocation</h6>
+                    <p class="text-secondary small mb-0">GPS fix & Maps link</p>
+                </div>
+            </div>
+            <div class="col-md-4 col-lg-2">
+                <div class="ai-card h-100 text-center p-3">
+                    <i class="bi bi-battery-charging fs-1 text-success mb-2"></i>
+                    <h6 class="fw-bold">Real Storage & DB</h6>
+                    <p class="text-secondary small mb-0">SQLite & localStorage event</p>
+                </div>
+            </div>
+            <div class="col-md-4 col-lg-2">
+                <div class="ai-card h-100 text-center p-3">
+                    <i class="bi bi-phone-vibrate-fill fs-1 text-purple mb-2" style="color: var(--accent-purple);"></i>
+                    <h6 class="fw-bold">Device Handoff</h6>
+                    <p class="text-secondary small mb-0">SMS, Tel, Share, Copy</p>
+                </div>
+            </div>
+            <div class="col-md-4 col-lg-2">
+                <div class="ai-card h-100 text-center p-3">
+                    <i class="bi bi-check-circle-fill fs-1 text-info mb-2"></i>
+                    <h6 class="fw-bold">Honest Status</h6>
+                    <p class="text-secondary small mb-0">Zero false confirmations</p>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Contact Modal (Add & Edit) -->
+    <div class="modal fade" id="contactModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content bg-dark text-white border-secondary">
+                <div class="modal-header border-secondary">
+                    <h5 class="modal-title fw-bold" id="contactModalTitle">Add Emergency Contact</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="contactForm">
+                        <input type="hidden" id="contactEditId" value="">
+                        <div class="mb-3">
+                            <label for="contactNameInput" class="form-label fw-bold small">Contact Name *</label>
+                            <input type="text" id="contactNameInput" class="form-control bg-secondary text-white border-dark" placeholder="e.g. Mom, Alex, Caregiver" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="contactPhoneInput" class="form-label fw-bold small">Phone Number *</label>
+                            <input type="tel" id="contactPhoneInput" class="form-control bg-secondary text-white border-dark" placeholder="e.g. +15551234567" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="contactRelInput" class="form-label fw-bold small">Relationship / Note</label>
+                            <input type="text" id="contactRelInput" class="form-control bg-secondary text-white border-dark" placeholder="e.g. Family, Neighbor, Doctor">
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer border-secondary">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" id="btnSaveContactModal" class="btn btn-ai-primary">Save Contact</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- Multi-Step SOS Modal Wizard -->
+    <div class="modal fade" id="sosWizardModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content bg-dark text-white border-danger shadow-lg">
+                
+                <div class="modal-header bg-danger text-white border-danger">
+                    <h5 class="modal-title fw-bold" id="sosWizardTitle">
+                        <i class="bi bi-shield-fill-exclamation me-2"></i> EMERGENCY SOS WIZARD
+                    </h5>
+                    <button type="button" id="btnCloseSosWizard" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+
+                <div class="modal-body p-4">
+
+                    <!-- STEP 1: SELECT EMERGENCY TYPE -->
+                    <div id="sosWizardStep1" class="sos-wizard-step">
+                        <!-- Safety Disclaimer Box -->
+                        <div class="alert alert-warning border-warning d-flex align-items-start gap-2 mb-4">
+                            <i class="bi bi-shield-exclamation text-warning fs-4 flex-shrink-0"></i>
+                            <div class="small">
+                                <strong>Safety Disclaimer:</strong> This does not contact police, ambulance, or any emergency dispatch. It only notifies the personal contacts you've saved. If you are in real danger, dial your local emergency number directly if you can.
+                            </div>
+                        </div>
+
+                        <h6 class="fw-bold text-light mb-3"><i class="bi bi-card-checklist text-info me-2"></i> Step 1: Select Emergency Type</h6>
+                        
+                        <div class="row g-3 mb-4">
+                            <div class="col-md-4 col-6">
+                                <button type="button" class="sos-type-card active" data-type="Medical Emergency">
+                                    <i class="bi bi-heart-pulse-fill fs-2 text-danger"></i>
+                                    <span class="d-block fw-bold mt-2">Medical</span>
+                                </button>
+                            </div>
+                            <div class="col-md-4 col-6">
+                                <button type="button" class="sos-type-card" data-type="Personal Threat / Harassment">
+                                    <i class="bi bi-exclamation-octagon-fill fs-2 text-warning"></i>
+                                    <span class="d-block fw-bold mt-2">Personal Threat</span>
+                                </button>
+                            </div>
+                            <div class="col-md-4 col-6">
+                                <button type="button" class="sos-type-card" data-type="Accident / Collision">
+                                    <i class="bi bi-car-front-fill fs-2 text-primary"></i>
+                                    <span class="d-block fw-bold mt-2">Accident</span>
+                                </button>
+                            </div>
+                            <div class="col-md-4 col-6">
+                                <button type="button" class="sos-type-card" data-type="Fire Incident">
+                                    <i class="bi bi-fire fs-2 text-danger"></i>
+                                    <span class="d-block fw-bold mt-2">Fire</span>
+                                </button>
+                            </div>
+                            <div class="col-md-4 col-6">
+                                <button type="button" class="sos-type-card" data-type="Deaf / Speech Impaired Urgent Assistance">
+                                    <i class="bi bi-hand-index-thumb-fill fs-2 text-info"></i>
+                                    <span class="d-block fw-bold mt-2">Deaf / Speech Assistance</span>
+                                </button>
+                            </div>
+                            <div class="col-md-4 col-6">
+                                <button type="button" class="sos-type-card" data-type="General Danger / Immediate Help">
+                                    <i class="bi bi-shield-fill-exclamation fs-2 text-purple" style="color: var(--accent-purple);"></i>
+                                    <span class="d-block fw-bold mt-2">General Danger</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="d-flex justify-content-end gap-2">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                            <button type="button" id="btnStep1Next" class="btn btn-ai-primary">
+                                Next: Fetch Location <i class="bi bi-arrow-right"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- STEP 2: GET REAL LOCATION -->
+                    <div id="sosWizardStep2" class="sos-wizard-step d-none">
+                        <h6 class="fw-bold text-light mb-3"><i class="bi bi-geo-alt-fill text-info me-2"></i> Step 2: High-Accuracy Real Location</h6>
+                        
+                        <div id="locationStatusAlert" class="alert alert-info d-flex align-items-center gap-2 mb-3">
+                            <span class="spinner-border spinner-border-sm text-info"></span>
+                            <span>Requesting real browser coordinates via Geolocation API...</span>
+                        </div>
+
+                        <!-- Real Location Preview Card -->
+                        <div id="locationResultCard" class="ai-card mb-3 p-3 d-none">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span class="badge bg-success"><i class="bi bi-check-circle-fill me-1"></i> Location Acquired</span>
+                                <span id="locationModeBadge" class="badge bg-info font-monospace">GPS Fix</span>
+                            </div>
+                            <div class="row g-2 small">
+                                <div class="col-6"><strong>Latitude:</strong> <span id="locLat" class="font-monospace text-info">--</span></div>
+                                <div class="col-6"><strong>Longitude:</strong> <span id="locLng" class="font-monospace text-info">--</span></div>
+                                <div class="col-6"><strong>Accuracy:</strong> <span id="locAcc" class="font-monospace text-secondary">--</span></div>
+                                <div class="col-12 mt-2">
+                                    <strong>Google Maps Link:</strong><br>
+                                    <a id="locMapsUrl" href="#" target="_blank" class="text-break text-cyan small">--</a>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Manual Location Fallback Toggle / Input -->
+                        <div class="card bg-secondary bg-opacity-25 border-secondary p-3 mb-4">
+                            <label for="manualLocationInput" class="form-label fw-bold small text-light d-flex justify-content-between">
+                                <span><i class="bi bi-pencil-square me-1"></i> Manual Location Fallback:</span>
+                                <span class="text-muted fw-normal">Optional / Override</span>
+                            </label>
+                            <input type="text" id="manualLocationInput" class="form-control bg-dark text-white border-secondary" placeholder="Enter landmark, address, or manual coordinates (e.g. 12.9716, 77.5946)">
+                            <div class="form-text text-muted small mt-1">
+                                Will be explicitly labeled <em>"(entered manually)"</em> in the alert text.
+                            </div>
+                        </div>
+
+                        <div class="d-flex justify-content-between gap-2">
+                            <button type="button" id="btnStep2Back" class="btn btn-ai-secondary"><i class="bi bi-arrow-left"></i> Back</button>
+                            <button type="button" id="btnStep2Next" class="btn btn-ai-primary">Next: Confirmation <i class="bi bi-arrow-right"></i></button>
+                        </div>
+                    </div>
+
+                    <!-- STEP 3: CONFIRMATION & PREVIEW -->
+                    <div id="sosWizardStep3" class="sos-wizard-step d-none">
+                        <!-- Safety Disclaimer Box -->
+                        <div class="alert alert-warning border-warning d-flex align-items-start gap-2 mb-3 py-2 px-3">
+                            <i class="bi bi-shield-exclamation text-warning fs-5 flex-shrink-0 mt-1"></i>
+                            <div class="small">
+                                <strong>Safety Disclaimer:</strong> This does not contact police, ambulance, or any emergency dispatch. It only notifies the personal contacts you've saved. If you are in real danger, dial your local emergency number directly if you can.
+                            </div>
+                        </div>
+
+                        <h6 class="fw-bold text-light mb-3"><i class="bi bi-clipboard-check-fill text-success me-2"></i> Step 3: Review & SEND SOS NOW</h6>
+
+                        <!-- Summary Card -->
+                        <div class="ai-card p-3 mb-3 border-danger">
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <div class="small text-secondary">EMERGENCY TYPE:</div>
+                                    <div id="previewEmergencyType" class="fw-bold text-danger fs-5">--</div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="small text-secondary">TIMESTAMP:</div>
+                                    <div id="previewTimestamp" class="font-monospace text-light small">--</div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="small text-secondary">BATTERY STATUS:</div>
+                                    <div id="previewBattery" class="font-monospace text-info small">Battery information unavailable</div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="small text-secondary">LOCATION FIX:</div>
+                                    <div id="previewLocation" class="small text-light">--</div>
+                                </div>
+                                <div class="col-12 border-top border-secondary pt-2">
+                                    <div class="small text-secondary">TARGET EMERGENCY CONTACTS:</div>
+                                    <div id="previewContacts" class="mt-1 d-flex flex-wrap gap-1">--</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Optional Note Field -->
+                        <div class="mb-3">
+                            <label for="sosNoteInput" class="form-label small fw-bold text-secondary">Optional SOS Note / Context:</label>
+                            <textarea id="sosNoteInput" class="form-control bg-dark text-white border-secondary" rows="2" placeholder="e.g. Trapped in lobby, need silent help immediately..."></textarea>
+                        </div>
+
+                        <!-- Inline Contact Warning if 0 contacts -->
+                        <div id="noContactsInlineWarning" class="alert alert-danger d-none mb-3">
+                            <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                            <strong>No Emergency Contacts Saved!</strong> Please add at least one contact name and phone number before dispatching:
+                            <div class="row g-2 mt-2">
+                                <div class="col-md-5"><input type="text" id="quickContactName" class="form-control form-control-sm bg-dark text-white border-secondary" placeholder="Name"></div>
+                                <div class="col-md-5"><input type="tel" id="quickContactPhone" class="form-control form-control-sm bg-dark text-white border-secondary" placeholder="Phone Number"></div>
+                                <div class="col-md-2"><button type="button" id="btnQuickAddContact" class="btn btn-sm btn-light w-100">Add</button></div>
+                            </div>
+                        </div>
+
+                        <div class="d-flex justify-content-between gap-2">
+                            <button type="button" id="btnStep3Back" class="btn btn-ai-secondary"><i class="bi bi-arrow-left"></i> Back</button>
+                            <button type="button" id="btnSendSosNow" class="btn btn-danger btn-lg px-4 fw-bold shadow-lg">
+                                <i class="bi bi-broadcast-pin me-1"></i> SEND SOS NOW
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- STEP 4: ACTIVE SOS CONTROL ROOM -->
+                    <div id="sosWizardStep4" class="sos-wizard-step d-none">
+                        <div class="text-center p-3 mb-4 rounded border border-danger bg-danger bg-opacity-25 shadow-glow">
+                            <h4 class="fw-bold text-white mb-1"><i class="bi bi-broadcast-pin pulse-dot me-2"></i> EMERGENCY SOS ACTIVE</h4>
+                            <div id="sosActiveIdBadge" class="badge bg-dark font-monospace text-info mb-2">ID: --</div>
+                            
+                            <!-- Honest Status Notification -->
+                            <div class="alert alert-dark border-info text-info small mb-0 mt-2">
+                                <i class="bi bi-info-circle-fill me-1"></i> <strong>Honest Status:</strong> Alert Prepared — Ready for Device Handoff. Tap any option below to dispatch via native SMS, Phone call, or Web Share.
+                            </div>
+                        </div>
+
+                        <h6 class="fw-bold text-light mb-3"><i class="bi bi-send-fill text-info me-2"></i> Real Device Handoff Options</h6>
+
+                        <div class="row g-3 mb-4">
+                            <!-- SMS Handoff -->
+                            <div class="col-md-6">
+                                <a id="btnSmsHandoff" href="#" target="_blank" class="btn btn-ai-primary w-100 py-3 d-flex align-items-center justify-content-center gap-2">
+                                    <i class="bi bi-chat-text-fill fs-4"></i>
+                                    <div class="text-start">
+                                        <div class="fw-bold">Open SMS App</div>
+                                        <div class="small opacity-75">Send alert to saved contacts</div>
+                                    </div>
+                                </a>
+                            </div>
+
+                            <!-- Tel Call Handoff -->
+                            <div class="col-md-6">
+                                <button type="button" id="btnTelHandoff" class="btn btn-ai-secondary w-100 py-3 d-flex align-items-center justify-content-center gap-2">
+                                    <i class="bi bi-telephone-fill fs-4 text-success"></i>
+                                    <div class="text-start">
+                                        <div class="fw-bold">Call Emergency Number</div>
+                                        <div id="telNumberSubtext" class="small text-secondary">Dial configured setting number</div>
+                                    </div>
+                                </button>
+                            </div>
+
+                            <!-- Web Share Handoff -->
+                            <div class="col-md-6">
+                                <button type="button" id="btnShareHandoff" class="btn btn-ai-outline w-100 py-3 d-flex align-items-center justify-content-center gap-2">
+                                    <i class="bi bi-share-fill fs-4"></i>
+                                    <div class="text-start">
+                                        <div class="fw-bold">Web Share Alert</div>
+                                        <div class="small opacity-75">Share to WhatsApp, Apps</div>
+                                    </div>
+                                </button>
+                            </div>
+
+                            <!-- Copy Handoff -->
+                            <div class="col-md-6">
+                                <button type="button" id="btnCopyHandoff" class="btn btn-ai-secondary w-100 py-3 d-flex align-items-center justify-content-center gap-2">
+                                    <i class="bi bi-clipboard-fill fs-4 text-warning"></i>
+                                    <div class="text-start">
+                                        <div class="fw-bold">Copy Alert Text</div>
+                                        <div class="small opacity-75">Copy message to clipboard</div>
+                                    </div>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Direct Call Saved Contacts List -->
+                        <div class="mb-4">
+                            <label class="form-label small text-secondary fw-bold">
+                                <i class="bi bi-telephone-outbound-fill text-success me-1"></i> Direct Call Emergency Contacts:
+                            </label>
+                            <div id="activeSosContactsCallList" class="row g-2">
+                                <div class="col-12 text-muted small">No contacts saved to call directly.</div>
+                            </div>
+                        </div>
+
+                        <!-- Formatted Alert Text Preview -->
+                        <div class="mb-4">
+                            <label class="form-label small text-secondary fw-bold">Formatted Alert Text:</label>
+                            <textarea id="activeAlertTextPreview" class="form-control bg-dark text-info font-monospace small" rows="4" readonly></textarea>
+                        </div>
+
+                        <!-- Deactivate / Resolve SOS -->
+                        <div class="d-flex justify-content-center border-top border-secondary pt-3">
+                            <button type="button" id="btnResolveSos" class="btn btn-outline-success btn-lg px-4">
+                                <i class="bi bi-check-circle-fill me-1"></i> Resolve & Deactivate SOS Alert
+                            </button>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- Footer -->
+    <footer>
+        <p class="mb-0">SignSpeak AI System &copy; 2026 | Real-Time Sign Language & Real Emergency SOS Engine</p>
+    </footer>
+
+    <!-- Bootstrap 5 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+</body>
+</html>
