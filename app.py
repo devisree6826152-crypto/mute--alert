@@ -40,12 +40,15 @@ def get_recognizer():
 
 # Ensure starter dataset and trained model exist on app boot
 def bootstrap_system():
-    if not os.path.exists(DATASET_PATH):
-        print("Initializing starter dataset...")
-        generate_starter_dataset()
-    if not os.path.exists(MODEL_PATH):
-        print("Training initial ML model...")
-        train_sign_model()
+    try:
+        if not os.path.exists(DATASET_PATH):
+            print("Initializing starter dataset...")
+            generate_starter_dataset()
+        if not os.path.exists(MODEL_PATH):
+            print("Training initial ML model...")
+            train_sign_model()
+    except Exception as e:
+        print(f"Warning: System bootstrap skipped or failed (likely read-only environment): {e}")
 
 bootstrap_system()
 

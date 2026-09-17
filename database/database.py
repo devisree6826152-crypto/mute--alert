@@ -2,75 +2,92 @@ import sqlite3
 import os
 from datetime import datetime
 
-DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'signspeak.db')
+DEFAULT_DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'signspeak.db')
+
+def get_db_path():
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    try:
+        os.makedirs(base_dir, exist_ok=True)
+        # Test write capability
+        test_file = os.path.join(base_dir, '.write_test')
+        with open(test_file, 'w') as f:
+            f.write('1')
+        os.remove(test_file)
+        return DEFAULT_DB_PATH
+    except Exception:
+        tmp_dir = os.path.join('/tmp', 'signspeak_db')
+        os.makedirs(tmp_dir, exist_ok=True)
+        return os.path.join(tmp_dir, 'signspeak.db')
 
 def get_db_connection():
-    conn = sqlite3.connect(DB_PATH)
+    conn = sqlite3.connect(get_db_path())
     conn.row_factory = sqlite3.Row
     return conn
 
 def init_db():
     """Initialize the SQLite database with history and dataset tables."""
-    os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    
-    # History Table
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS history (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            recognized_text TEXT NOT NULL,
-            confidence REAL NOT NULL,
-            timestamp TEXT NOT NULL,
-            sign_type TEXT DEFAULT 'sentence'
-        )
-    ''')
-    
-    # Dataset Metadata Table
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS dataset_meta (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            class_name TEXT UNIQUE NOT NULL,
-            sample_count INTEGER DEFAULT 0,
-            last_updated TEXT
-        )
-    ''')
-    
-    # SOS Events Table
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS sos_events (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            sos_id TEXT UNIQUE NOT NULL,
-            emergency_type TEXT NOT NULL,
-            latitude REAL,
-            longitude REAL,
-            location_mode TEXT DEFAULT 'gps',
-            accuracy REAL,
-            maps_url TEXT,
-            timestamp TEXT NOT NULL,
-            battery_status TEXT,
-            contacts TEXT,
-            note TEXT,
-            status TEXT DEFAULT 'ACTIVE',
-            resolved_at TEXT,
-            user_id TEXT DEFAULT 'default'
-        )
-    ''')
-    
-    # Emergency Contacts Table
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS emergency_contacts (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT NOT NULL,
-            phone TEXT NOT NULL,
-            relationship TEXT DEFAULT 'Contact',
-            created_at TEXT NOT NULL,
-            user_id TEXT DEFAULT 'default'
-        )
-    ''')
-    
-    conn.commit()
-    conn.close()
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # History Table
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS history (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                recognized_text TEXT NOT NULL,
+                confidence REAL NOT NULL,
+                timestamp TEXT NOT NULL,
+                sign_type TEXT DEFAULT 'sentence'
+            )
+        ''')
+        
+        # Dataset Metadata Table
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS dataset_meta (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                class_name TEXT UNIQUE NOT NULL,
+                sample_count INTEGER DEFAULT 0,
+                last_updated TEXT
+            )
+        ''')
+        
+        # SOS Events Table
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS sos_events (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                sos_id TEXT UNIQUE NOT NULL,
+                emergency_type TEXT NOT NULL,
+                latitude REAL,
+                longitude REAL,
+                location_mode TEXT DEFAULT 'gps',
+                accuracy REAL,
+                maps_url TEXT,
+                timestamp TEXT NOT NULL,
+                battery_status TEXT,
+                contacts TEXT,
+                note TEXT,
+                status TEXT DEFAULT 'ACTIVE',
+                resolved_at TEXT,
+                user_id TEXT DEFAULT 'default'
+            )
+        ''')
+        
+        # Emergency Contacts Table
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS emergency_contacts (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL,
+                phone TEXT NOT NULL,
+                relationship TEXT DEFAULT 'Contact',
+                created_at TEXT NOT NULL,
+                user_id TEXT DEFAULT 'default'
+            )
+        ''')
+        
+        conn.commit()
+        conn.close()
+    except Exception as e:
+        print(f"Warning: Database initialization error: {e}")
 
 def add_sos_event(sos_data):
     """Insert a new real SOS event record with idempotency safety."""
