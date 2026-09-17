@@ -1,4 +1,8 @@
-import cv2
+try:
+    import cv2
+except ImportError:
+    cv2 = None
+
 import numpy as np
 
 try:
@@ -8,15 +12,18 @@ except ImportError:
 
 class HandTracker:
     def __init__(self, static_image_mode=False, max_num_hands=1, min_detection_confidence=0.5, min_tracking_confidence=0.5):
-        self.mp_hands = mp.solutions.hands if mp else None
-        self.mp_drawing = mp.solutions.drawing_utils if mp else None
-        if self.mp_hands:
-            self.hands = self.mp_hands.Hands(
-                static_image_mode=static_image_mode,
-                max_num_hands=max_num_hands,
-                min_detection_confidence=min_detection_confidence,
-                min_tracking_confidence=min_tracking_confidence
-            )
+        self.mp_hands = mp.solutions.hands if (mp and hasattr(mp, 'solutions')) else None
+        self.mp_drawing = mp.solutions.drawing_utils if (mp and hasattr(mp, 'solutions')) else None
+        if self.mp_hands and cv2:
+            try:
+                self.hands = self.mp_hands.Hands(
+                    static_image_mode=static_image_mode,
+                    max_num_hands=max_num_hands,
+                    min_detection_confidence=min_detection_confidence,
+                    min_tracking_confidence=min_tracking_confidence
+                )
+            except Exception:
+                self.hands = None
         else:
             self.hands = None
 
@@ -24,15 +31,15 @@ class HandTracker:
         if frame is None:
             return None, None, None, False
 
-        annotated_frame = frame.copy()
-        if not self.hands:
-            # Fallback dummy features if mediapipe unavailable
+        annotated_frame = frame.copy() if hasattr(frame, 'copy') else frame
+        if not self.hands or not cv2:
+            # Fallback dummy features if cv2 or mediapipe unavailable
             return annotated_frame, None, None, False
 
         rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         results = self.hands.process(rgb_frame)
 
-        if not results.multi_hand_landmarks:
+        if not results or not results.multi_hand_landmarks:
             return annotated_frame, None, None, False
 
         hand_landmarks = results.multi_hand_landmarks[0]

@@ -1,11 +1,20 @@
 import os
 import io
-import cv2
 import base64
 import joblib
 import numpy as np
 from flask import Flask, render_template, request, jsonify, Response, send_file
 from gtts import gTTS
+
+try:
+    import cv2
+except ImportError:
+    cv2 = None
+
+try:
+    from PIL import Image
+except ImportError:
+    Image = None
 
 # Local imports
 from database.database import (
@@ -51,20 +60,35 @@ def bootstrap_system():
 
 bootstrap_system()
 
-# Helper function to decode base64 image string to OpenCV BGR image
+# Helper function to decode base64 image string to numpy image array
 def decode_base64_image(base64_str):
     if ',' in base64_str:
         base64_str = base64_str.split(',')[1]
     image_bytes = base64.b64decode(base64_str)
-    nparr = np.frombuffer(image_bytes, np.uint8)
-    frame = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
-    return frame
+    if cv2:
+        nparr = np.frombuffer(image_bytes, np.uint8)
+        frame = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+        return frame
+    elif Image:
+        img = Image.open(io.BytesIO(image_bytes)).convert('RGB')
+        return np.array(img)
+    return None
 
-# Helper function to encode OpenCV frame to base64 string
+# Helper function to encode image frame to base64 string
 def encode_image_base64(frame):
-    _, buffer = cv2.imencode('.jpg', frame, [int(cv2.IMWRITE_JPEG_QUALITY), 80])
-    base64_str = base64.b64encode(buffer).decode('utf-8')
-    return f"data:image/jpeg;base64,{base64_str}"
+    if frame is None:
+        return ""
+    if cv2:
+        _, buffer = cv2.imencode('.jpg', frame, [int(cv2.IMWRITE_JPEG_QUALITY), 80])
+        base64_str = base64.b64encode(buffer).decode('utf-8')
+        return f"data:image/jpeg;base64,{base64_str}"
+    elif Image:
+        img = Image.fromarray(frame)
+        buffer = io.BytesIO()
+        img.save(buffer, format='JPEG', quality=80)
+        base64_str = base64.b64encode(buffer.getvalue()).decode('utf-8')
+        return f"data:image/jpeg;base64,{base64_str}"
+    return ""
 
 
 # ---------------------- HTML ROUTE HANDLERS ----------------------
@@ -108,12 +132,17 @@ def api_predict_frame():
             return jsonify({'success': False, 'error': 'Invalid frame format'}), 400
 
         # Mirror frame horizontally for intuitive self-view
-        frame = cv2.flip(frame, 1)
+        frame = np.fliplr(frame)
         
-        # Resize to standard 320x240 for ultra-fast MediaPipe inference
+        # Resize to standard 320x240 for ultra-fast landmark inference
         h, w, _ = frame.shape
         if w > 320:
-            frame = cv2.resize(frame, (320, 240))
+            if cv2:
+                frame = cv2.resize(frame, (320, 240))
+            elif Image:
+                img = Image.fromarray(frame)
+                img = img.resize((320, 240))
+                frame = np.array(img)
 
         rec = get_recognizer()
         result = rec.predict_frame(frame, confidence_threshold=threshold)
@@ -145,7 +174,7 @@ def api_collect_frame():
         if frame is None:
             return jsonify({'success': False, 'error': 'Invalid image format'}), 400
 
-        frame = cv2.flip(frame, 1)
+        frame = np.fliplr(frame)
 
         # Use HandTracker to extract normalized 73 features
         rec = get_recognizer()
