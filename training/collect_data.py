@@ -1,5 +1,5 @@
 import os
-import pandas as pd
+import csv
 from database.database import update_class_sample_count
 
 def save_sample_to_csv(sign_name, features, csv_path='data/signs.csv'):
@@ -7,18 +7,22 @@ def save_sample_to_csv(sign_name, features, csv_path='data/signs.csv'):
     sign_name = sign_name.upper().strip()
 
     row_data = [sign_name] + list(features)
-    columns = ['label'] + [f'f_{i}' for i in range(len(features))]
 
-    if not os.path.exists(csv_path):
-        df = pd.DataFrame([row_data], columns=columns)
-        df.to_csv(csv_path, index=False)
-    else:
-        df_existing = pd.read_csv(csv_path)
-        df_new = pd.DataFrame([row_data], columns=columns)
-        df_combined = pd.concat([df_existing, df_new], ignore_index=False)
-        df_combined.to_csv(csv_path, index=False)
+    file_exists = os.path.exists(csv_path)
+    with open(csv_path, 'a', newline='', encoding='utf-8') as f:
+        writer = csv.writer(f)
+        if not file_exists:
+            cols = ['label'] + [f'f_{i}' for i in range(len(features))]
+            writer.writerow(cols)
+        writer.writerow(row_data)
 
-    df_current = pd.read_csv(csv_path)
-    count = int((df_current.iloc[:, 0].astype(str).str.upper() == sign_name).sum())
+    count = 0
+    with open(csv_path, 'r', encoding='utf-8') as f:
+        reader = csv.reader(f)
+        header = next(reader, None)
+        for row in reader:
+            if row and row[0].strip().upper() == sign_name:
+                count += 1
+
     update_class_sample_count(sign_name, count)
     return count

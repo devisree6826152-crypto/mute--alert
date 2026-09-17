@@ -16,9 +16,6 @@ from database.database import (
 )
 from recognition.hand_tracker import HandTracker
 from recognition.realtime import RealtimeRecognizer
-from training.train_model import train_sign_model
-from training.collect_data import save_sample_to_csv
-from training.generate_starter_data import generate_starter_dataset
 
 app = Flask(__name__)
 
@@ -43,10 +40,12 @@ def bootstrap_system():
     try:
         if not os.path.exists(DATASET_PATH):
             print("Initializing starter dataset...")
-            generate_starter_dataset()
+            from training.generate_starter_data import generate_starter_dataset
+            generate_starter_dataset(csv_path=DATASET_PATH)
         if not os.path.exists(MODEL_PATH):
             print("Training initial ML model...")
-            train_sign_model()
+            from training.train_model import train_sign_model
+            train_sign_model(csv_path=DATASET_PATH, model_path=MODEL_PATH)
     except Exception as e:
         print(f"Warning: System bootstrap skipped or failed (likely read-only environment): {e}")
 
@@ -159,20 +158,30 @@ def api_collect_frame():
                 'message': 'No hand detected in camera frame. Position hand clearly.'
             }), 400
 
+        from training.collect_data import save_sample_to_csv
         save_sample_to_csv(sign_name, features, csv_path=DATASET_PATH)
         annotated_base64 = encode_image_base64(annotated_frame)
 
-        # Count total samples for this class
-        import pandas as pd
-        df = pd.read_csv(DATASET_PATH)
-        class_count = int((df.iloc[:, 0].astype(str).str.upper() == sign_name.upper()).sum())
+        # Count total samples for this class using python csv module
+        import csv
+        class_count = 0
+        total_dataset_size = 0
+        if os.path.exists(DATASET_PATH):
+            with open(DATASET_PATH, 'r', encoding='utf-8') as f:
+                reader = csv.reader(f)
+                next(reader, None)
+                for row in reader:
+                    if row:
+                        total_dataset_size += 1
+                        if row[0].strip().upper() == sign_name.upper():
+                            class_count += 1
 
         return jsonify({
             'success': True,
             'hand_detected': True,
             'sign_name': sign_name.upper(),
             'class_sample_count': class_count,
-            'total_dataset_size': len(df),
+            'total_dataset_size': total_dataset_size,
             'annotated_frame': annotated_base64,
             'message': f"Sample captured for '{sign_name.upper()}' (Total: {class_count})"
         })
@@ -184,7 +193,8 @@ def api_collect_frame():
 def api_train_model():
     """Trigger model retraining and reload active recognizer."""
     try:
-        res = train_sign_model()
+        from training.train_model import train_sign_model
+        res = train_sign_model(csv_path=DATASET_PATH, model_path=MODEL_PATH)
         if res.get('success'):
             global recognizer
             if recognizer is not None:
@@ -200,16 +210,20 @@ def api_train_model():
 def api_stats():
     """Return dataset overview, total samples, class counts, and model metrics."""
     try:
-        import pandas as pd
+        import csv
         stats_db = get_dataset_stats()
         
         total_samples = 0
         class_counts = {}
         if os.path.exists(DATASET_PATH):
-            df = pd.read_csv(DATASET_PATH)
-            total_samples = len(df)
-            counts = df.iloc[:, 0].astype(str).str.upper().value_counts()
-            class_counts = counts.to_dict()
+            with open(DATASET_PATH, 'r', encoding='utf-8') as f:
+                reader = csv.reader(f)
+                next(reader, None)
+                for row in reader:
+                    if row:
+                        total_samples += 1
+                        cname = row[0].strip().upper()
+                        class_counts[cname] = class_counts.get(cname, 0) + 1
 
         model_loaded = False
         accuracy = 0.0

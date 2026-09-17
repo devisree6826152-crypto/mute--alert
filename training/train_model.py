@@ -1,29 +1,39 @@
 import os
+import csv
 import joblib
-import pandas as pd
 import numpy as np
 from datetime import datetime
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.model_selection import train_test_split
-from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, confusion_matrix
 
 def train_sign_model(csv_path='data/signs.csv', model_path='models/sign_model.pkl'):
     if not os.path.exists(csv_path):
         from training.generate_starter_data import generate_starter_dataset
         generate_starter_dataset(csv_path=csv_path)
 
-    df = pd.read_csv(csv_path)
-    if len(df) < 5:
+    labels = []
+    features_list = []
+    if os.path.exists(csv_path):
+        with open(csv_path, 'r', encoding='utf-8') as f:
+            reader = csv.reader(f)
+            header = next(reader, None)
+            for row in reader:
+                if row and len(row) > 1:
+                    labels.append(row[0].strip().upper())
+                    features_list.append([float(x) for x in row[1:]])
+
+    if len(labels) < 5:
         return {'success': False, 'error': 'Not enough samples to train model.'}
 
-    X = np.asarray(df.iloc[:, 1:].values, dtype=np.float64)
-    y = np.asarray(df.iloc[:, 0].astype(str).str.upper().values, dtype=str)
+    X = np.array(features_list, dtype=np.float64)
+    y = np.array(labels, dtype=str)
 
     unique_classes = sorted(list(set(y)))
     if len(unique_classes) < 2:
         return {'success': False, 'error': 'At least 2 sign classes are required to train classification model.'}
 
-    # Stratified train/test split if possible
+    from sklearn.ensemble import RandomForestClassifier
+    from sklearn.model_selection import train_test_split
+    from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, confusion_matrix
+
     try:
         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42, stratify=y)
     except Exception:
